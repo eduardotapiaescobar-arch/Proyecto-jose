@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Diagnóstico JL">
+  <title>Informe Diagnóstico - JL Servicios</title>
+
+  <!-- Tailwind CSS y Librería PDF -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    body {
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .oculto { display: none !important; }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-900 pb-20">
+
+  <!-- Barra Superior -->
+  <header class="bg-white border-b sticky top-0 z-30 px-4 py-3 flex justify-between items-center shadow-sm">
+    <h1 class="text-lg font-bold text-slate-800" id="headerTitle">Informe diagnóstico</h1>
+    <button id="btnGenerarPDF" onclick="generarYGuardarPDF()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 shadow-sm disabled:opacity-40">
+      <i class="fa-solid fa-file-pdf"></i> Generar PDF
+    </button>
+  </header>
+
+  <!-- Contenido: Formulario Diagnóstico -->
+  <main id="pantallaFormulario" class="max-w-xl mx-auto p-4 space-y-4">
+    
+    <!-- Membrete informativo -->
+    <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="flex items-center gap-1 font-black text-blue-900 text-xl tracking-tight">
+          <i class="fa-solid fa-gear text-blue-800"></i>
+          <span>JL</span>
+          <span class="text-xs font-semibold text-gray-500 leading-3">SERVICIOS<br>INDUSTRIALES</span>
+        </div>
+      </div>
+      <h2 class="text-sm font-bold text-gray-800">JL Servicios de Reparación y Mantención</h2>
+      <p class="text-xs text-gray-500">RUT: 77.146.974-4</p>
+      <p class="text-xs text-gray-500">Tel: +56 9 6577 4816</p>
+    </div>
+
+    <!-- Cliente / Solicitante -->
+    <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 space-y-1">
+      <label class="text-xs font-bold text-gray-600 uppercase tracking-wide">Información General</label>
+      <input type="text" id="destinatario" placeholder="Dirigido a (Cliente / Solicitante)" 
+             oninput="guardarBorrador()"
+             class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+    </div>
+
+    <!-- Lista dinámica de componentes -->
+    <div id="contenedorComponentes" class="space-y-4"></div>
+
+    <!-- Botón agregar componente -->
+    <button onclick="agregarComponente()" class="w-full py-3 bg-white border border-blue-600 text-blue-600 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm active:bg-blue-50">
+      <i class="fa-solid fa-circle-plus text-base"></i> Agregar otro componente
+    </button>
+
+    <!-- Botón limpiar pantalla -->
+    <button onclick="confirmarLimpieza()" class="w-full py-2.5 text-red-600 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-red-50 active:bg-red-100">
+      <i class="fa-solid fa-trash"></i> Limpiar todos los datos
+    </button>
+  </main>
+
+  <!-- Contenido: Historial -->
+  <section id="pantallaHistorial" class="max-w-xl mx-auto p-4 space-y-3 oculto">
+    <div id="listaHistorial" class="space-y-2"></div>
+  </section>
+
+  <!-- Pestañas de Navegación Inferior (Estilo iOS) -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-2 flex justify-around items-center z-40">
+    <button onclick="cambiarTab('diagnostico')" id="tabBtnDiagnostico" class="flex flex-col items-center text-blue-600 text-xs font-semibold gap-1">
+      <i class="fa-solid fa-wrench text-lg"></i>
+      <span>Diagnóstico</span>
+    </button>
+    <button onclick="cambiarTab('historial')" id="tabBtnHistorial" class="flex flex-col items-center text-gray-400 text-xs font-semibold gap-1">
+      <i class="fa-solid fa-clock-rotate-left text-lg"></i>
+      <span>Historial</span>
+    </button>
+  </nav>
+
+  <!-- Plantilla Oculta para Renderizar PDF A4 Imprimible -->
+  <div class="oculto">
+    <div id="hojaPDF" class="p-8 bg-white text-black" style="width: 750px; font-family: Arial, sans-serif;">
+      
+      <!-- Encabezado con Membrete y Logo -->
+      <div class="flex justify-between items-start border-b pb-4 mb-4">
+        <div class="flex items-center gap-3">
+          <div style="font-size: 28px; font-weight: 900; color: #0d3b66;">
+            ⚙️ JL <span style="font-size: 14px; font-weight: 700; color: #555;">SERVICIOS INDUSTRIALES</span>
+          </div>
+        </div>
+        <div class="text-right text-xs leading-4 text-gray-700">
+          <div class="font-bold text-sm text-slate-800">JL SERVICIOS DE REPARACIÓN Y MANTENCIÓN</div>
+          <div>RUT: 77.146.974-4</div>
+          <div>Tel: +56 9 6577 4816</div>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <h2 class="text-xl font-bold text-slate-900 mb-1">Informe diagnóstico</h2>
+        <div class="text-xs text-gray-700"><strong>Cliente / Solicitante:</strong> <span id="pdfCliente"></span></div>
+        <div class="text-xs text-gray-700"><strong>Fecha:</strong> <span id="pdfFecha"></span></div>
+      </div>
+
+      <hr class="border-t border-slate-700 mb-4">
+
+      <!-- Detalle de componentes en PDF -->
+      <div id="pdfComponentes" class="space-y-4"></div>
+    </div>
+  </div>
+
+  <!-- Lógica JavaScript -->
+  <script>
+    let componentes = [{ nombre: "", numeroInterno: "", hallazgos: "", fotos: [] }];
+    let historial = [];
+
+    window.addEventListener("DOMContentLoaded", () => {
+      cargarDatos();
+      renderizarComponentes();
+      renderizarHistorial();
+    });
+
+    function guardarBorrador() {
+      const destinatario = document.getElementById("destinatario").value;
+      localStorage.setItem("jl_borrador", JSON.stringify({ destinatario, componentes }));
+    }
+
+    function cargarDatos() {
+      const borradorGuardado = localStorage.getItem("jl_borrador");
+      if (borradorGuardado) {
+        const parsed = JSON.parse(borradorGuardado);
+        document.getElementById("destinatario").value = parsed.destinatario || "";
+        if (parsed.componentes && parsed.componentes.length > 0) {
+          componentes = parsed.componentes;
+        }
+      }
+      const historialGuardado = localStorage.getItem("jl_historial");
+      if (historialGuardado) {
+        historial = JSON.parse(historialGuardado);
+      }
+    }
+
+    function renderizarComponentes() {
+      const container = document.getElementById("contenedorComponentes");
+      container.innerHTML = "";
+
+      componentes.forEach((comp, idx) => {
+        const div = document.createElement("div");
+        div.className = "bg-white rounded-xl p-4 shadow-sm border border-gray-200 space-y-3";
+        div.innerHTML = `
+          <div class="flex justify-between items-center border-b pb-2">
+            <span class="text-xs font-bold text-gray-700 uppercase">Componente ${idx + 1}</span>
+            ${componentes.length > 1 ? `
+              <button onclick="eliminarComponente(${idx})" class="text-red-500 text-sm font-semibold hover:text-red-700">
+                <i class="fa-solid fa-trash"></i>
+              </button>` : ''}
+          </div>
+
+          <input type="text" placeholder="Nombre del componente (ej. Motorreductor)" value="${comp.nombre}"
+                 oninput="actualizarCampo(${idx}, 'nombre', this.value)"
+                 class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+
+          <input type="text" placeholder="Número interno / ID" value="${comp.numeroInterno}"
+                 oninput="actualizarCampo(${idx}, 'numeroInterno', this.value)"
+                 class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+
+          <div>
+            <label class="text-xs font-semibold text-gray-500">Hallazgos / Diagnóstico:</label>
+            <textarea rows="3" oninput="actualizarCampo(${idx}, 'hallazgos', this.value)"
+                      placeholder="Describa el diagnóstico técnico..."
+                      class="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-blue-500">${comp.hallazgos}</textarea>
+          </div>
+
+          <!-- Fotos -->
+          <div>
+            <label class="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 cursor-pointer bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg active:bg-blue-100">
+              <i class="fa-solid fa-camera"></i> Adjuntar fotos
+              <input type="file" accept="image/*" multiple onchange="agregarFotos(${idx}, this)" class="hidden">
+            </label>
+            <div class="flex gap-2 mt-2 overflow-x-auto pb-1" id="galeria-${idx}">
+              ${comp.fotos.map((f, fIdx) => `
+                <div class="relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-gray-300">
+                  <img src="${f}" class="w-full h-full object-cover">
+                  <button onclick="eliminarFoto(${idx},${fIdx})" class="absolute top-0.5 right-0.5 bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]">✕</button>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function agregarComponente() {
+      componentes.push({ nombre: "", numeroInterno: "", hallazgos: "", fotos: [] });
+      renderizarComponentes();
+      guardarBorrador();
+    }
+
+    function eliminarComponente(index) {
+      if (componentes.length > 1) {
+        componentes.splice(index, 1);
+        renderizarComponentes();
+        guardarBorrador();
+      }
+    }
+
+    function actualizarCampo(index, campo, valor) {
+      componentes[index][campo] = valor;
+      guardarBorrador();
+    }
+
+    function agregarFotos(index, input) {
+      const files = Array.from(input.files);
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          componentes[index].fotos.push(e.target.result);
+          renderizarComponentes();
+          guardarBorrador();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function eliminarFoto(compIndex, fotoIndex) {
+      componentes[compIndex].fotos.splice(fotoIndex, 1);
+      renderizarComponentes();
+      guardarBorrador();
+    }
+
+    function confirmarLimpieza() {
+      if (confirm("¿Limpiar todos los datos del informe actual? El historial no se borrará.")) {
+        document.getElementById("destinatario").value = "";
+        componentes = [{ nombre: "", numeroInterno: "", hallazgos: "", fotos: [] }];
+        renderizarComponentes();
+        localStorage.removeItem("jl_borrador");
+      }
+    }
+
+    function cambiarTab(tab) {
+      const pForm = document.getElementById("pantallaFormulario");
+      const pHist = document.getElementById("pantallaHistorial");
+      const btnDiag = document.getElementById("tabBtnDiagnostico");
+      const btnHist = document.getElementById("tabBtnHistorial");
+
+      if (tab === 'diagnostico') {
+        pForm.classList.remove("oculto");
+        pHist.classList.add("oculto");
+        btnDiag.className = "flex flex-col items-center text-blue-600 text-xs font-semibold gap-1";
+        btnHist.className = "flex flex-col items-center text-gray-400 text-xs font-semibold gap-1";
+        document.getElementById("headerTitle").innerText = "Informe diagnóstico";
+        document.getElementById("btnGenerarPDF").classList.remove("oculto");
+      } else {
+        pForm.classList.add("oculto");
+        pHist.classList.remove("oculto");
+        btnHist.className = "flex flex-col items-center text-blue-600 text-xs font-semibold gap-1";
+        btnDiag.className = "flex flex-col items-center text-gray-400 text-xs font-semibold gap-1";
+        document.getElementById("headerTitle").innerText = "Historial";
+        document.getElementById("btnGenerarPDF").classList.add("oculto");
+        renderizarHistorial();
+      }
+    }
+
+    function obtenerFechaEspanol() {
+      const opciones = { year: 'numeric', month: 'long', day: 'numeric' };
+      return new Date().toLocaleDateString('es-CL', opciones);
+    }
+
+    function generarYGuardarPDF() {
+      const cliente = document.getElementById("destinatario").value.trim();
+      if (!cliente) {
+        alert("Por favor indique a quién va dirigido el informe.");
+        return;
+      }
+
+      // 1. Cargar plantilla PDF
+      document.getElementById("pdfCliente").innerText = cliente;
+      document.getElementById("pdfFecha").innerText = obtenerFechaEspanol();
+
+      const contenedorPDFComp = document.getElementById("pdfComponentes");
+      contenedorPDFComp.innerHTML = "";
+
+      componentes.forEach((c, i) => {
+        const item = document.createElement("div");
+        item.className = "border-b pb-3 mb-2";
+        item.innerHTML = `
+          <div style="font-weight: bold; font-size: 13px; margin-bottom: 3px;">
+            ${i + 1}. Componente: ${c.nombre || "Sin nombre"} ${c.numeroInterno ? `(N° Int: ${c.numeroInterno})` : ''}
+          </div>
+          <div style="font-size: 11px; color: #444; margin-bottom: 6px;">
+            <strong>Hallazgos:</strong> ${c.hallazgos || "Sin observaciones reportadas."}
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            ${c.fotos.map(foto => `<img src="${foto}" style="width: 110px; height: 85px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc;">`).join('')}
+          </div>
+        `;
+        contenedorPDFComp.appendChild(item);
+      });
+
+      // 2. Guardar en Historial
+      const registro = {
+        id: Date.now(),
+        fecha: new Date().toLocaleDateString('es-CL', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        cliente: cliente,
+        cantidadComponentes: componentes.length
+      };
+      historial.unshift(registro);
+      localStorage.setItem("jl_historial", JSON.stringify(historial));
+
+      // 3. Exportar mediante html2pdf
+      const elemento = document.getElementById("hojaPDF");
+      const opciones = {
+        margin: 10,
+        filename: `Informe_Diagnostico_${cliente.replace(/\s+/g, '_')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      html2pdf().set(opciones).from(elemento).save();
+    }
+
+    function renderizarHistorial() {
+      const lista = document.getElementById("listaHistorial");
+      lista.innerHTML = "";
+
+      if (historial.length === 0) {
+        lista.innerHTML = `
+          <div class="text-center py-12 text-gray-400 space-y-2">
+            <i class="fa-solid fa-clock text-3xl"></i>
+            <p class="text-sm">No hay informes emitidos todavía.</p>
+          </div>
+        `;
+        return;
+      }
+
+      historial.forEach((item, idx) => {
+        const card = document.createElement("div");
+        card.className = "bg-white p-3 rounded-xl border border-gray-200 flex justify-between items-center shadow-sm";
+        card.innerHTML = `
+          <div>
+            <h3 class="font-bold text-sm text-slate-800">${item.cliente}</h3>
+            <p class="text-xs text-gray-500"><i class="fa-solid fa-calendar-day mr-1"></i>${item.fecha}</p>
+            <span class="text-[11px] font-semibold text-blue-600">${item.cantidadComponentes} componente(s)</span>
+          </div>
+          <button onclick="eliminarDelHistorial(${idx})" class="text-gray-400 hover:text-red-500 p-2">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        `;
+        lista.appendChild(card);
+      });
+    }
+
+    function eliminarDelHistorial(index) {
+      historial.splice(index, 1);
+      localStorage.setItem("jl_historial", JSON.stringify(historial));
+      renderizarHistorial();
+    }
+  </script>
+</body>
+</html>
